@@ -3,7 +3,7 @@ name = "keycode_macro"
 description = "A Rust crate for parsing Chrome's mapping of keys. Used in the `keycode` crate."
 version = "0.4.0"
 authors = ["Dylan Frankland <dfrankland@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 homepage = "https://github.com/dfrankland/keycode"
 repository = "https://github.com/dfrankland/keycode"
 license = "MIT"
@@ -16,8 +16,9 @@ proc-macro = true
 [dependencies]
 quote = "1.0.2"
 proc-macro2 = "1.0.6"
-heck = "0.3.1"
+heck = "0.5.0"
 anyhow = "1.0.26"
+concat-idents = "1.1.5"
 
 [dev-dependencies]
-bitflags = "1.0.4"
+bitflags = "2.6.0"

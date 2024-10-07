@@ -2,6 +2,7 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone)]
 pub struct KeyMap {
+    #[allow(dead_code)]
     pub usb_page_code: u16,
     pub usb_code: u16,
     pub evdev_code: u16,

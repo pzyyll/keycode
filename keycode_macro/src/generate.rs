@@ -51,6 +51,7 @@ pub fn generate(key_maps: HashSet<KeyMap>) -> TokenStream {
     quote! {
         use bitflags::bitflags;
         use core::convert::TryFrom;
+        use core::str::FromStr;
 
         bitflags! {
             /// Bitmask for key modifiers based on the USB HID standard
@@ -60,6 +61,7 @@ pub fn generate(key_maps: HashSet<KeyMap>) -> TokenStream {
             /// <https://www.usb.org/sites/default/files/documents/hid1_11.pdf>
             ///
             /// Go to page 56, "8.3 Report Format for Array Items"
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub struct KeyModifiers: u8 {
                 /// Control left key bitmask
@@ -218,6 +220,18 @@ pub fn generate(key_maps: HashSet<KeyMap>) -> TokenStream {
             }
         }
 
+        impl FromStr for KeyMappingCode {
+            type Err = ();
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    #(
+                        stringify!(#codes) => Ok(KeyMappingCode::#codes),
+                    )*
+                    _ => Err(()),
+                }
+            }
+        }
+
         impl From<KeyMappingCode> for KeyMap {
             fn from(code: KeyMappingCode) -> KeyMap {
                 get_key_map(KeyMapping::Code(Some(code))).unwrap()
@@ -245,9 +259,116 @@ pub fn generate(key_maps: HashSet<KeyMap>) -> TokenStream {
             }
         }
 
+        impl FromStr for KeyMappingId {
+            type Err = ();
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    #(
+                        stringify!(#ids) => Ok(KeyMappingId::#ids),
+                    )*
+                    _ => Err(()),
+                }
+            }
+        }
+
         impl From<KeyMappingId> for KeyMap {
             fn from(id: KeyMappingId) -> KeyMap {
                 get_key_map(KeyMapping::Id(id)).unwrap()
+            }
+        }
+
+        impl From<&KeyMappingId> for KeyMap {
+            fn from(id: &KeyMappingId) -> KeyMap {
+                get_key_map(KeyMapping::Id(*id)).unwrap()
+            }
+        }
+
+        /// Virtual key id to match the `KeyMappingId` with "Control", "Shift", "Alt", and "Meta"
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        pub enum VirtualKeyId {
+            #(
+                #[doc = "Virtual key id to match the `KeyMappingId`"]
+                #[allow(non_camel_case_types)]
+                #ids,
+            )*
+            #[doc = "Virtual key id to match the `KeyMappingId`"]
+            #[allow(non_camel_case_types)]
+            Control,
+            #[doc = "Virtual key id to match the `KeyMappingId`"]
+            #[allow(non_camel_case_types)]
+            Shift,
+            #[doc = "Virtual key id to match the `KeyMappingId`"]
+            #[allow(non_camel_case_types)]
+            Alt,
+            #[doc = "Virtual key id to match the `KeyMappingId`"]
+            #[allow(non_camel_case_types)]
+            Meta,
+        }
+
+        impl TryFrom<KeyMappingId> for VirtualKeyId {
+            type Error = ();
+            /// Get the `VirtualKeyId` from the `KeyMappingId`
+            fn try_from(id: KeyMappingId) -> Result<VirtualKeyId, Self::Error> {
+                match id {
+                    #(
+                        KeyMappingId::#ids => Ok(VirtualKeyId::#ids),
+                    )*
+                }
+            }
+        }
+
+        impl VirtualKeyId {
+
+            /// Get the `KeyMappingId` from the `VirtualKeyId`
+            fn to_key_mapping_id(&self) -> Option<KeyMappingId> {
+                match self {
+                    #(
+                        VirtualKeyId::#ids => Some(KeyMappingId::#ids),
+                    )*
+                    _ => None,
+                }
+            }
+
+            /// Get the `KeyModifiers` from the `VirtualKeyId`
+            pub fn modifier(&self) -> Option<KeyModifiers> {
+                match *self {
+                    VirtualKeyId::Control => Some(KeyModifiers::ControlLeft | KeyModifiers::ControlRight),
+                    VirtualKeyId::Shift => Some(KeyModifiers::ShiftLeft | KeyModifiers::ShiftRight),
+                    VirtualKeyId::Alt => Some(KeyModifiers::AltLeft | KeyModifiers::AltRight),
+                    VirtualKeyId::Meta => Some(KeyModifiers::MetaLeft | KeyModifiers::MetaRight),
+                    _ => KeyMap::from(self.to_key_mapping_id().unwrap()).modifier,
+                }
+            }
+        }
+
+        impl core::fmt::Display for VirtualKeyId {
+            fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                match *self {
+                    #(
+                        VirtualKeyId::#ids => write!(f, stringify!(#ids)),
+                    )*
+                    VirtualKeyId::Control => write!(f, "Control"),
+                    VirtualKeyId::Shift => write!(f, "Shift"),
+                    VirtualKeyId::Alt => write!(f, "Alt"),
+                    VirtualKeyId::Meta => write!(f, "Meta"),
+                }
+            }
+        }
+
+        impl FromStr for VirtualKeyId {
+            type Err = ();
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    #(
+                        stringify!(#ids) => Ok(VirtualKeyId::#ids),
+                    )*
+                    "Control" => Ok(VirtualKeyId::Control),
+                    "Shift" => Ok(VirtualKeyId::Shift),
+                    "Alt" => Ok(VirtualKeyId::Alt),
+                    "Meta" => Ok(VirtualKeyId::Meta),
+                    _ => Err(()),
+                }
             }
         }
     }

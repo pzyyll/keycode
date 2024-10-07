@@ -112,3 +112,4 @@ fn keyboard_state_works_for_usb_input_report() {
         ]
     );
 }
+

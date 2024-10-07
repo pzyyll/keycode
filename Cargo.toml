@@ -3,3 +3,4 @@ members = [
    "keycode",
    "keycode_macro",
 ]
+resolver = "2"
